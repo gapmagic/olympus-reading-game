@@ -16190,7 +16190,7 @@ index 370d39c1..b8710b7b 100644
    // book is not in the index), and the current-direction rows to skip, sorted
 diff --git a/src/activities/olympus/OlympusActivity.cpp b/src/activities/olympus/OlympusActivity.cpp
 new file mode 100644
-index 00000000..74debc8d
+index 00000000..ea5e74fa
 --- /dev/null
 +++ b/src/activities/olympus/OlympusActivity.cpp
 @@ -0,0 +1,876 @@
@@ -16631,8 +16631,8 @@ index 00000000..74debc8d
 +  const Tier tier = olympus::tierOf(id);
 +  char body[360];
 +  snprintf(body, sizeof(body),
-+           OLY_T("Nhân vật sẽ thành bạn đồng hành. Chỉ tính %s (%s), mục tiêu %d trang mỗi ngày. Bạn đồng hành cũ về lại đền, chuỗi ngày bắt đầu từ 0.", "This character becomes your companion. Only %s count (%s), goal %d pages a day. Your old companion returns to the Temple and the streak restarts from 0."),
-+           draw::tierBookName(tier), draw::tierBookRange(tier), olympus::dailyGoal(tier));
++           OLY_T("Nhân vật sẽ thành bạn đồng hành. Mục tiêu %d trang mỗi ngày, sách nào cũng được. Bạn đồng hành cũ về lại đền, chuỗi ngày bắt đầu từ 0.", "This character becomes your companion. Goal: %d pages a day, from any book. Your old companion returns to the Temple and the streak restarts from 0."),
++           olympus::dailyGoal(tier));
 +  showModal(std::string(OLY_T("Đặt ", "Set ")) + ch.name + OLY_T(" làm màn chờ?", " as sleep screen?"), body, {OLY_T("Huỷ", "Cancel"), OLY_T("Đặt", "Set")}, 1, [this, id](const int choice) {
 +    if (choice != 1) return;
 +    olympus::store().chooseCompanion(id);
@@ -17594,10 +17594,10 @@ index 65b4aed3..c2a041a2 100644
    sdFontSystem.begin(renderer);
 diff --git a/src/olympus/OlympusDraw.cpp b/src/olympus/OlympusDraw.cpp
 new file mode 100644
-index 00000000..6fa38126
+index 00000000..32da072e
 --- /dev/null
 +++ b/src/olympus/OlympusDraw.cpp
-@@ -0,0 +1,597 @@
+@@ -0,0 +1,590 @@
 +#include "OlympusDraw.h"
 +#include "OlympusLang.h"
 +
@@ -17795,10 +17795,6 @@ index 00000000..6fa38126
 +}
 +const char* tierBookName(const Tier tier) {
 +  const char* const names[] = {OLY_T("sách mỏng", "short books"), OLY_T("sách vừa", "medium books"), OLY_T("sách dày", "long books")};
-+  return names[static_cast<int>(tier)];
-+}
-+const char* tierBookRead(const Tier tier) {
-+  const char* const names[] = {OLY_T("sách mỏng", "a short book"), OLY_T("sách vừa", "a medium book"), OLY_T("sách dày", "a long book")};
 +  return names[static_cast<int>(tier)];
 +}
 +
@@ -18006,7 +18002,7 @@ index 00000000..6fa38126
 +  const Companion& c = s.companion;
 +  const Tier tier = tierOf(c.charId);
 +  const int goal = dailyGoal(tier);
-+  constexpr int H = 122;
++  constexpr int H = 98;
 +  r.drawRoundedRect(28, y, W - 56, H, 2, 10, true);
 +  r.drawText(F::SMALL, 44, y + 14, OLY_T("MỤC TIÊU HÔM NAY", "TODAY'S GOAL"), true, EpdFontFamily::BOLD);
 +  char buf[96];
@@ -18014,14 +18010,12 @@ index 00000000..6fa38126
 +  const int bw = r.getTextWidth(F::BUTTON, buf, EpdFontFamily::BOLD);
 +  r.drawText(F::BUTTON, W - 44 - bw, y + 6, buf, true, EpdFontFamily::BOLD);
 +  bar(r, 44, y + 44, W - 88, 14, c.todayPages * 1000 / goal);
-+  snprintf(buf, sizeof(buf), OLY_T("Chỉ tính %s (%s)", "Only %s count (%s)"), tierBookName(tier), tierBookRange(tier));
-+  r.drawText(F::SMALL, 44, y + 64, buf);
 +  const char* missedLabel = OLY_T("Ngày lỡ", "Missed days");
-+  r.drawText(F::SMALL, 44, y + 90, missedLabel, true, EpdFontFamily::BOLD);
++  r.drawText(F::SMALL, 44, y + 66, missedLabel, true, EpdFontFamily::BOLD);
 +  const int dotsX = 44 + r.getTextWidth(F::SMALL, missedLabel, EpdFontFamily::BOLD) + 18;
 +  const int missed = c.goalMetToday ? 0 : c.missed;
 +  for (int i = 0; i < MAX_MISSED_DAYS; ++i) {
-+    const int cx = dotsX + i * 22, cy = y + 102;
++    const int cx = dotsX + i * 22, cy = y + 78;
 +    if (i < missed) {
 +      fillCircle(r, cx, cy, 7);
 +    } else {
@@ -18037,7 +18031,7 @@ index 00000000..6fa38126
 +  }
 +  singularDays(buf);
 +  const int sw = r.getTextWidth(F::SMALL, buf, EpdFontFamily::BOLD);
-+  r.drawText(F::SMALL, W - 44 - sw, y + 90, buf, true, EpdFontFamily::BOLD);
++  r.drawText(F::SMALL, W - 44 - sw, y + 66, buf, true, EpdFontFamily::BOLD);
 +}
 +
 +// A white box for quotes and news, or a black one for warnings, under the scene.
@@ -18142,11 +18136,11 @@ index 00000000..6fa38126
 +      warning = true;
 +      const int left = MAX_MISSED_DAYS - c.missed;
 +      if (left > 1) {
-+        snprintf(text, sizeof(text), OLY_T("Đã lỡ %d ngày. Còn %d ngày để đọc %d trang %s, nếu không %s sẽ về đền.", "Days missed: %d. You have %d days to read %d pages of %s, or %s will go back to the Temple."),
-+                 c.missed, left, goal, tierBookRead(tier), ch.name);
++        snprintf(text, sizeof(text), OLY_T("Đã lỡ %d ngày. Còn %d ngày để đọc %d trang, nếu không %s sẽ về đền.", "Days missed: %d. You have %d days to read %d pages, or %s will go back to the Temple."),
++                 c.missed, left, goal, ch.name);
 +      } else {
-+        snprintf(text, sizeof(text), OLY_T("Đã lỡ %d ngày. Hôm nay đọc %d trang %s, nếu không %s sẽ về đền.", "Days missed: %d. Read %d pages of %s today, or %s will go back to the Temple."),
-+                 c.missed, goal, tierBookRead(tier), ch.name);
++        snprintf(text, sizeof(text), OLY_T("Đã lỡ %d ngày. Hôm nay đọc %d trang, nếu không %s sẽ về đền.", "Days missed: %d. Read %d pages today, or %s will go back to the Temple."),
++                 c.missed, goal, ch.name);
 +      }
 +    } else {
 +      snprintf(text, sizeof(text), OLY_T("Hôm nay %s chưa được ăn. Đọc đủ %d trang để cho nó ăn nhé.", "%s hasn't eaten today. Read %d pages to feed it."), ch.name, goal);
@@ -18156,12 +18150,11 @@ index 00000000..6fa38126
 +    shrine(r, c.charId, level);
 +    if (mood == Mood::Ember) {
 +      warning = true;
-+      snprintf(text, sizeof(text), OLY_T("%s đang giận. Đọc %d trang %s để thắp lại đuốc.", "%s is angry. Read %d pages of %s to relight the torch."), ch.name, goal,
-+               tierBookRead(tier));
++      snprintf(text, sizeof(text), OLY_T("%s đang giận. Đọc %d trang để thắp lại đuốc.", "%s is angry. Read %d pages to relight the torch."), ch.name, goal);
 +    } else if (mood == Mood::WeakTorch) {
 +      warning = true;
-+      snprintf(text, sizeof(text), OLY_T("Đã lỡ %d ngày. Hôm nay đọc %d trang %s, nếu không đuốc sẽ thành than.", "Days missed: %d. Read %d pages of %s today, or the torch will burn out."),
-+               c.missed, goal, tierBookRead(tier));
++      snprintf(text, sizeof(text), OLY_T("Đã lỡ %d ngày. Hôm nay đọc %d trang, nếu không đuốc sẽ thành than.", "Days missed: %d. Read %d pages today, or the torch will burn out."),
++               c.missed, goal);
 +    } else {
 +      snprintf(text, sizeof(text), "“%s”", ch.blessing);
 +    }
@@ -18197,10 +18190,10 @@ index 00000000..6fa38126
 +}  // namespace olympus::draw
 diff --git a/src/olympus/OlympusDraw.h b/src/olympus/OlympusDraw.h
 new file mode 100644
-index 00000000..7f722c5e
+index 00000000..b024d6c0
 --- /dev/null
 +++ b/src/olympus/OlympusDraw.h
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,44 @@
 +#pragma once
 +// Drawing helpers shared by the Olympus screens and the sleep screen.
 +#include <cstdint>
@@ -18239,7 +18232,6 @@ index 00000000..7f722c5e
 +const char* tierKind(Tier tier);       // "Sinh vật", "Thần", "Titan"
 +const char* tierBookRange(Tier tier);  // "tới 200 trang"
 +const char* tierBookName(Tier tier);   // "sách mỏng" / "short books"
-+const char* tierBookRead(Tier tier);   // "sách mỏng" / "a short book" (after "read N pages of")
 +std::string number(uint8_t id);        // "#003"
 +
 +// The companion / incubator screen drawn on sleep and by the companion tile.
@@ -19632,7 +19624,7 @@ index 00000000..ae84a327
 +}  // namespace olympus
 diff --git a/src/olympus/OlympusRules.cpp b/src/olympus/OlympusRules.cpp
 new file mode 100644
-index 00000000..5f01bf45
+index 00000000..76d55789
 --- /dev/null
 +++ b/src/olympus/OlympusRules.cpp
 @@ -0,0 +1,458 @@
@@ -19889,8 +19881,8 @@ index 00000000..5f01bf45
 +// ---- Companion ----
 +
 +bool isCompanionBook(const State& state, const int bookPages) {
-+  return state.companion.charId != NO_CHAR && bookPages > 0 &&
-+         tierForPages(bookPages) == tierOf(state.companion.charId);
++  // Any book feeds the companion; only the number of pages depends on its tier.
++  return state.companion.charId != NO_CHAR && bookPages > 0;
 +}
 +
 +void rollover(State& state, const int32_t today) {
@@ -21035,10 +21027,10 @@ index 00000000..21798931
 +}  // namespace olympus
 diff --git a/test/olympus_rules/OlympusRulesTest.cpp b/test/olympus_rules/OlympusRulesTest.cpp
 new file mode 100644
-index 00000000..1a59e948
+index 00000000..92f7b62f
 --- /dev/null
 +++ b/test/olympus_rules/OlympusRulesTest.cpp
-@@ -0,0 +1,275 @@
+@@ -0,0 +1,276 @@
 +#include <gtest/gtest.h>
 +
 +#include <cstring>
@@ -21208,13 +21200,14 @@ index 00000000..1a59e948
 +  EXPECT_TRUE(noteCompanionPages(s, 150, 5, 100));
 +  EXPECT_EQ(companionMood(s), Mood::Happy);
 +  EXPECT_EQ(s.companion.streak, 1);
-+  EXPECT_FALSE(noteCompanionPages(s, 300, 50, 101));  // silver-size book: does not count
-+  rollover(s, 102);
++  EXPECT_TRUE(noteCompanionPages(s, 300, 5, 101));  // any book counts, even a long one
++  EXPECT_EQ(s.companion.streak, 2);
++  rollover(s, 103);  // nothing read on day 102
 +  EXPECT_EQ(s.companion.missed, 1);
 +  EXPECT_EQ(companionMood(s), Mood::Hungry);
-+  rollover(s, 103);
-+  EXPECT_EQ(s.companion.missed, 2);
 +  rollover(s, 104);
++  EXPECT_EQ(s.companion.missed, 2);
++  rollover(s, 105);
 +  EXPECT_EQ(companionMood(s), Mood::Left);
 +  EXPECT_EQ(s.companion.leftCharId, 0);
 +}
@@ -21246,12 +21239,12 @@ index 00000000..1a59e948
 +  EXPECT_EQ(s.companion.streak, 1);
 +}
 +
-+TEST(OlympusCompanion, GoldNeedsTwentyPagesFromBigBooks) {
++TEST(OlympusCompanion, GoldNeedsTwentyPagesFromAnyBook) {
 +  State s;
 +  chooseCompanion(s, 2 * PER_TIER, 1);
-+  EXPECT_FALSE(noteCompanionPages(s, 499, 30, 1));
-+  EXPECT_FALSE(noteCompanionPages(s, 600, 19, 1));
-+  EXPECT_TRUE(noteCompanionPages(s, 600, 1, 1));
++  EXPECT_FALSE(noteCompanionPages(s, 120, 10, 1));
++  EXPECT_FALSE(noteCompanionPages(s, 600, 9, 1));
++  EXPECT_TRUE(noteCompanionPages(s, 350, 1, 1));
 +}
 +
 +TEST(OlympusState, RoundTrip) {
