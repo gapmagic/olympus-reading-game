@@ -62,10 +62,8 @@ Store.TIER_KIND = { L("Sinh vật"), L("Thần"), L("Titan") }
 Store.TIER_KIND_UPPER = { L("SINH VẬT"), L("THẦN OLYMPUS"), L("TITAN") }
 Store.TIER_GROUP = { L("Sinh vật và tiểu thần"), L("Thần Olympus"), L("Titan và thần nguyên thuỷ") }
 Store.TIER_RANGE = { L("tới 200 trang"), L("201 đến 499 trang"), L("từ 500 trang") }
--- Short names for the three book sizes. TIER_NAME is the plural used in "only ... count";
--- TIER_BOOK is the form used after "read N pages of".
+-- Short names for the three book sizes (which egg a book gives).
 Store.TIER_NAME = { L("sách mỏng"), L("sách vừa"), L("sách dày") }
-Store.TIER_BOOK = I18N.current == "en" and { "a short book", "a medium book", "a long book" } or Store.TIER_NAME
 
 function Store.char(id) return Roster[id] end
 
