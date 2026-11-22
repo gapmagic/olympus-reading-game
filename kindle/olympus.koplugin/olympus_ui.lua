@@ -75,7 +75,13 @@ local function face(size, bold, kind)
     local path = fontPath(kind == "display" and "display" or (bold and "bold" or "body"))
     -- Alegreya runs small next to KOReader's sans fonts: nudge body text up.
     if path and kind ~= "display" then s = math.floor(s * 1.12 + 0.5) end
-    if path then return Font:getFace(path, s), false end
+    if path then
+        local f = Font:getFace(path, s)
+        if f then return f, false end
+        -- The bundled font could not be opened: never fail, use KOReader's own.
+        font_ok[path] = false
+        s = math.max(7, math.floor(size * U / dpi_scale + 0.5))
+    end
     return Font:getFace(bold and "tfont" or "cfont", s), bold
 end
 

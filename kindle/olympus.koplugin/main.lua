@@ -63,7 +63,14 @@ end
 ---------------------------------------------------------------------------
 function Olympus:init()
     Art.dir = self.path .. "/sprites/"
-    UI.font_dir = self.path .. "/fonts/"
+    -- KOReader gives plugins a relative path ("plugins/olympus.koplugin"), but
+    -- Font:getFace only treats paths starting with "/" or "./" as files: make it absolute.
+    local base = self.path
+    if base:sub(1, 1) ~= "/" then
+        local cwd = lfs.currentdir()
+        base = cwd and (cwd .. "/" .. base) or ("./" .. base)
+    end
+    UI.font_dir = base .. "/fonts/"
     Store.load()
     UI.plugin = self
     patchScreensaver()
