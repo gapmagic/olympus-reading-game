@@ -947,8 +947,9 @@ function Altar:paintTo(bb, x, y)
     bb:paintBorder(cx - math.floor(a * 0.8), yy, math.floor(a * 1.6), self.base_h, bw, BLACK)
     -- offerings on the ledge
     local it = self.item
-    local ledge = y + self.top_y + math.floor(it * 0.12)
-    self.bowl:paintTo(bb, cx - math.floor(sw / 2) + math.floor(sw * 0.03), ledge - it)
+    -- sit the bowl's foot exactly on the ledge (sprite rows below the foot are blank)
+    local foot = self.state == "left" and 1 or 88 / 96
+    self.bowl:paintTo(bb, cx - math.floor(sw / 2) + math.floor(sw * 0.04), y + self.top_y - math.floor(it * foot))
 end
 
 -- Builds the status panel of size w x h. for_sleep marks the sleep-screen version.
