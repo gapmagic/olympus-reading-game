@@ -904,7 +904,7 @@ function Altar:init()
     self.base_h = math.max(4, math.floor(a * 0.05))
     self.item = math.floor(a * 0.30)
     self.h = self.top_y + self.cap_h + self.body_h + self.base_h
-    self.label = text(self.name, 24, true, math.floor(a * 0.8), BLACK, "display")
+    self.label = text(self.name, 26, true, math.floor(a * 0.8), BLACK, "display")
     self.creature = Art.widget(self.art_id, a)
     if self.state == "left" then self.creature.dim = true end
     local st = self.state
