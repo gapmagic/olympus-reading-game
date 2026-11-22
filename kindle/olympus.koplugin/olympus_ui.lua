@@ -51,10 +51,32 @@ end
 
 local function px(n) return math.max(1, math.floor(n * U + 0.5)) end
 
-local function face(size, bold)
+-- Bundled fonts (fonts/): Alegreya for text, Cormorant SC for titles and names.
+-- Falls back to KOReader's UI fonts if a file is missing.
+local FONT_FILES = { body = "Alegreya-Regular.ttf", bold = "Alegreya-Bold.ttf", display = "CormorantSC-Bold.ttf" }
+local font_ok = {}
+local function fontPath(kind)
+    local dir = UI.font_dir
+    if not dir then return nil end
+    local path = dir .. FONT_FILES[kind]
+    if font_ok[path] == nil then
+        local f = io.open(path, "rb")
+        font_ok[path] = f ~= nil
+        if f then f:close() end
+    end
+    return font_ok[path] and path or nil
+end
+
+-- Returns the face and whether KOReader should still embolden it.
+-- kind: nil (regular/bold body text) or "display".
+local function face(size, bold, kind)
     local dpi_scale = Screen:scaleBySize(1000) / 1000
     local s = math.max(7, math.floor(size * U / dpi_scale + 0.5))
-    return Font:getFace(bold and "tfont" or "cfont", s)
+    local path = fontPath(kind == "display" and "display" or (bold and "bold" or "body"))
+    -- Alegreya runs small next to KOReader's sans fonts: nudge body text up.
+    if path and kind ~= "display" then s = math.floor(s * 1.12 + 0.5) end
+    if path then return Font:getFace(path, s), false end
+    return Font:getFace(bold and "tfont" or "cfont", s), bold
 end
 
 ---------------------------------------------------------------------------
@@ -102,13 +124,15 @@ local function tap(widget, on_tap, on_hold)
     return Tap:new{ on_tap = on_tap, on_hold = on_hold, widget }
 end
 
-local function text(str, size, bold, max_w, color)
-    return TextWidget:new{ text = str, face = face(size, bold), bold = bold, max_width = max_w and math.floor(max_w),
+local function text(str, size, bold, max_w, color, kind)
+    local f, b = face(size, bold, kind)
+    return TextWidget:new{ text = str, face = f, bold = b, max_width = max_w and math.floor(max_w),
                            fgcolor = color or BLACK }
 end
 
 local function para(str, size, w, align, bold, color, bg)
-    return TextBoxWidget:new{ text = str, face = face(size, bold), bold = bold, width = math.floor(w),
+    local f, b = face(size, bold)
+    return TextBoxWidget:new{ text = str, face = f, bold = b, width = math.floor(w),
                               alignment = align or "left", fgcolor = color or BLACK, bgcolor = bg or WHITE }
 end
 
@@ -805,6 +829,68 @@ end
 -- Companion status: used as the sleep screen, and in the app.
 ---------------------------------------------------------------------------
 
+-- God / Titan shrine: the character stands on a statue plinth with its name
+-- carved in it, between two pillars topped by braziers. level: 2 = burning
+-- (both lit), 1 = weak (one lit), 0 = ember (both burnt out).
+local STONE = Blitbuffer.Color8(0xD8)
+local STONE_DARK = Blitbuffer.Color8(0x99)
+local Shrine = Widget:extend{ w = 0, art = 0, art_id = nil, name = "", level = 2 }
+function Shrine:init()
+    local a = self.art
+    self.cap_h = math.max(4, math.floor(a * 0.06))
+    self.body_h = math.max(18, math.floor(a * 0.22))
+    self.base_h = math.max(4, math.floor(a * 0.06))
+    self.feet_y = math.floor(a * 0.97)
+    self.h = self.feet_y + self.cap_h + self.body_h + self.base_h
+    self.label = text(self.name, 26, true, math.floor(a * 0.66), BLACK, "display")
+    self.god = Art.widget(self.art_id, a)
+    local fs = math.floor(a * 0.32)
+    self.fs = fs
+    local left = self.level >= 1 and (self.level == 2 and "flame_2" or "flame_1") or "flame_0"
+    local right = self.level == 2 and "flame_2" or "flame_0"
+    self.flames = { Art.widget(left, fs), Art.widget(right, fs) }
+end
+function Shrine:getSize() return Geom:new{ w = self.w, h = self.h } end
+local function slab(bb, x, y, w, h, fill)
+    bb:paintRect(x, y, w, h, fill)
+    bb:paintBorder(x, y, w, h, math.max(2, math.floor(h / 8)), BLACK)
+end
+function Shrine:paintTo(bb, x, y)
+    self.dimen = Geom:new{ x = x, y = y, w = self.w, h = self.h }
+    local a, cx = self.art, x + math.floor(self.w / 2)
+    local bw = px(2)
+    -- pillars with braziers
+    local col_w = math.floor(a * 0.17)
+    local gap = math.floor(a * 0.10)
+    local top = y + math.floor(a * 0.52)
+    local bottom = y + self.h
+    for i, side in ipairs({ -1, 1 }) do
+        local px0 = side < 0 and (cx - math.floor(a / 2) - gap - col_w) or (cx + math.floor(a / 2) + gap)
+        local capital = math.max(4, math.floor(a * 0.05))
+        slab(bb, px0 - math.floor(col_w * 0.2), top, col_w + math.floor(col_w * 0.4), capital, STONE_DARK)
+        bb:paintRect(px0, top + capital, col_w, bottom - top - 2 * capital, STONE)
+        for k = 1, 3 do
+            bb:paintRect(px0 + math.floor(col_w * k / 4), top + capital + bw, math.max(1, math.floor(bw / 2) + 1), bottom - top - 2 * capital - 2 * bw, STONE_DARK)
+        end
+        bb:paintBorder(px0, top + capital, col_w, bottom - top - 2 * capital, bw, BLACK)
+        slab(bb, px0 - math.floor(col_w * 0.2), bottom - capital, col_w + math.floor(col_w * 0.4), capital, STONE_DARK)
+        self.flames[i]:paintTo(bb, px0 + math.floor((col_w - self.fs) / 2), top - self.fs + math.floor(self.fs * 0.08))
+    end
+    -- plinth: cap, carved body with the name, base
+    local yy = y + self.feet_y
+    slab(bb, cx - math.floor(a * 0.44), yy, math.floor(a * 0.88), self.cap_h, STONE_DARK)
+    yy = yy + self.cap_h
+    local body_w = math.floor(a * 0.74)
+    bb:paintRect(cx - math.floor(body_w / 2), yy, body_w, self.body_h, STONE)
+    bb:paintBorder(cx - math.floor(body_w / 2), yy, body_w, self.body_h, bw, BLACK)
+    local ls = self.label:getSize()
+    self.label:paintTo(bb, cx - math.floor(ls.w / 2), yy + math.floor((self.body_h - ls.h) / 2))
+    yy = yy + self.body_h
+    slab(bb, cx - math.floor(a * 0.48), yy, math.floor(a * 0.96), self.base_h, STONE_DARK)
+    -- the god, standing on the plinth
+    self.god:paintTo(bb, cx - math.floor(a / 2), y)
+end
+
 -- Builds the status panel of size w x h. for_sleep marks the sleep-screen version.
 function UI.buildStatus(w, h, for_sleep)
     local s = Store.refreshDay()
@@ -902,20 +988,23 @@ function UI.buildStatus(w, h, for_sleep)
         -- Companion layout: label, character (+ flame / food), line, message, goal panel.
         local msg_w = message(msg, warning)
         local panel = c.char and goalPanel() or nil
-        local label = text(top_line, 14, false, inner_w)
+        local label = text(top_line, 16, true, inner_w, BLACK, "display")
         local fixed = label:getSize().h + msg_w:getSize().h + (panel and panel:getSize().h or px(50)) + px(90)
         local art = math.floor(math.max(px(96), math.min(inner_w * 0.75, h - fixed - px(60))))
-        if type(extra) == "string" then art = math.min(art, math.floor(inner_w / 1.75)) end
+        if type(extra) == "string" then
+            -- room for the pillars on both sides and the plinth below
+            art = math.floor(math.min(art, inner_w * 0.56, (h - fixed - px(60)) / 1.32))
+        end
         add(vspace(8))
         add(label)
         add(vspace(8))
-        if type(extra) == "string" then -- flame next to a god / Titan
-            local fl = math.floor(art / 3)
-            add(HorizontalGroup:new{ align = "bottom", HorizontalSpan:new{ width = fl }, Art.widget(art_id, art), Art.widget(extra, fl) })
+        if type(extra) == "string" then -- god / Titan on its shrine
+            add(Shrine:new{ w = inner_w, art = art, art_id = art_id, name = ch.name:upper(),
+                            level = tonumber(extra:match("%d")) or 2 })
         else
             add(Art.widget(art_id, art))
         end
-        add(hline(inner_w - px(40)))
+        if type(extra) ~= "string" then add(hline(inner_w - px(40))) end
         if type(extra) == "table" then add(vspace(4)); add(extra) end
         add(vspace(14))
         add(msg_w)
