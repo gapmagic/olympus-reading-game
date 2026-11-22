@@ -63,6 +63,7 @@ end
 ---------------------------------------------------------------------------
 function Olympus:init()
     Art.dir = self.path .. "/sprites/"
+    UI.font_dir = self.path .. "/fonts/"
     Store.load()
     UI.plugin = self
     patchScreensaver()

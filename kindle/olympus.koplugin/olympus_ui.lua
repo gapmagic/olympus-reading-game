@@ -51,10 +51,32 @@ end
 
 local function px(n) return math.max(1, math.floor(n * U + 0.5)) end
 
-local function face(size, bold)
+-- Bundled fonts (fonts/): Alegreya for text, Cormorant SC for titles and names.
+-- Falls back to KOReader's UI fonts if a file is missing.
+local FONT_FILES = { body = "Alegreya-Regular.ttf", bold = "Alegreya-Bold.ttf", display = "CormorantSC-Bold.ttf" }
+local font_ok = {}
+local function fontPath(kind)
+    local dir = UI.font_dir
+    if not dir then return nil end
+    local path = dir .. FONT_FILES[kind]
+    if font_ok[path] == nil then
+        local f = io.open(path, "rb")
+        font_ok[path] = f ~= nil
+        if f then f:close() end
+    end
+    return font_ok[path] and path or nil
+end
+
+-- Returns the face and whether KOReader should still embolden it.
+-- kind: nil (regular/bold body text) or "display".
+local function face(size, bold, kind)
     local dpi_scale = Screen:scaleBySize(1000) / 1000
     local s = math.max(7, math.floor(size * U / dpi_scale + 0.5))
-    return Font:getFace(bold and "tfont" or "cfont", s)
+    local path = fontPath(kind == "display" and "display" or (bold and "bold" or "body"))
+    -- Alegreya runs small next to KOReader's sans fonts: nudge body text up.
+    if path and kind ~= "display" then s = math.floor(s * 1.12 + 0.5) end
+    if path then return Font:getFace(path, s), false end
+    return Font:getFace(bold and "tfont" or "cfont", s), bold
 end
 
 ---------------------------------------------------------------------------
@@ -102,13 +124,15 @@ local function tap(widget, on_tap, on_hold)
     return Tap:new{ on_tap = on_tap, on_hold = on_hold, widget }
 end
 
-local function text(str, size, bold, max_w, color)
-    return TextWidget:new{ text = str, face = face(size, bold), bold = bold, max_width = max_w and math.floor(max_w),
+local function text(str, size, bold, max_w, color, kind)
+    local f, b = face(size, bold, kind)
+    return TextWidget:new{ text = str, face = f, bold = b, max_width = max_w and math.floor(max_w),
                            fgcolor = color or BLACK }
 end
 
 local function para(str, size, w, align, bold, color, bg)
-    return TextBoxWidget:new{ text = str, face = face(size, bold), bold = bold, width = math.floor(w),
+    local f, b = face(size, bold)
+    return TextBoxWidget:new{ text = str, face = f, bold = b, width = math.floor(w),
                               alignment = align or "left", fgcolor = color or BLACK, bgcolor = bg or WHITE }
 end
 
@@ -623,7 +647,7 @@ function Profile:build()
             section(L("KHẢ NĂNG"), ch.ability)
             section(L("BIỂU TƯỢNG"), ch.symbols)
             section(L("THẦN THOẠI"), ch.myth)
-            if tier ~= R.CLAY then section(L("LỜI BAN PHƯỚC"), ch.blessing) end
+            if ch.blessing ~= "" then section(tier == R.CLAY and L("LỜI NHẮN") or L("LỜI BAN PHƯỚC"), ch.blessing) end
         else
             title = "???"
             sub = L("Chưa nở")
@@ -631,8 +655,8 @@ function Profile:build()
             table.insert(details, card(bw, hint:getSize().h + px(28), hint, { pad = px(14), halign = "left" }))
             table.insert(details, vspace(10))
             local left = R.PER_TIER - R.hatchedCount(s, tier)
-            table.insert(details, para(string.format(L("Nở từ %s (sách %s). Bạn còn %d nhân vật chưa gặp ở bậc này."),
-                Store.TIER_EGG[tier], Store.TIER_RANGE[tier], left), 12, bw))
+            table.insert(details, para(string.format(L("Nở từ %s (%s, %s). Bạn còn %d nhân vật chưa gặp ở bậc này."),
+                Store.TIER_EGG[tier], Store.TIER_NAME[tier], Store.TIER_RANGE[tier], left), 12, bw))
         end
         local name_g = VerticalGroup:new{ align = "center", text(title, 28, true, bw), text(sub, 12) }
         local art = math.floor(math.min(bw * 0.6, bh - details:getSize().h - name_g:getSize().h - px(16)))
@@ -653,8 +677,8 @@ function Profile:askCompanion()
     local ch = Store.char(id)
     UIManager:show(ConfirmBox:new{
         text = string.format(L("Đặt %s làm màn chờ?"), ch.name) .. "\n\n" .. string.format(
-            L("Nhân vật sẽ thành bạn đồng hành. Chỉ tính sách %s, mục tiêu %d trang mỗi ngày. Bạn đồng hành cũ về lại đền, chuỗi ngày bắt đầu từ 0."),
-            Store.TIER_RANGE[tier], R.dailyGoal(tier)),
+            L("Nhân vật sẽ thành bạn đồng hành. Chỉ tính %s (%s), mục tiêu %d trang mỗi ngày. Bạn đồng hành cũ về lại đền, chuỗi ngày bắt đầu từ 0."),
+            Store.TIER_NAME[tier], Store.TIER_RANGE[tier], R.dailyGoal(tier)),
         ok_text = L("Đặt"),
         cancel_text = L("Huỷ"),
         ok_callback = function()
@@ -788,8 +812,8 @@ function TierComplete:build()
         if ev.all_completed then
             table.insert(g, para(L("Đủ 90/90! Lò ấp đóng lại. Vào Đền thờ để chọn một bạn đồng hành và giữ thói quen đọc mỗi ngày."), 14, bw, "center"))
         else
-            table.insert(g, para(string.format(L("Tất cả 30 nhân vật bậc này đã về Đền thờ. Từ giờ sách %s đặt vào lò ấp sẽ không nở thêm nhân vật."),
-                Store.TIER_RANGE[tier]), 13, bw, "center"))
+            table.insert(g, para(string.format(L("Tất cả 30 nhân vật bậc này đã về Đền thờ. Từ giờ %s đặt vào lò ấp sẽ không nở thêm nhân vật."),
+                Store.TIER_NAME[tier]), 13, bw, "center"))
             table.insert(g, vspace(10))
             table.insert(g, text(string.format(L("Bộ còn thiếu: Đất sét %d · Bạc %d · Vàng %d"),
                 30 - R.hatchedCount(s, 1), 30 - R.hatchedCount(s, 2), 30 - R.hatchedCount(s, 3)), 13, true, bw))
@@ -804,6 +828,196 @@ end
 ---------------------------------------------------------------------------
 -- Companion status: used as the sleep screen, and in the app.
 ---------------------------------------------------------------------------
+
+-- God / Titan shrine: the character stands on a statue plinth with its name
+-- carved in it, between two pillars topped by braziers. level: 2 = burning
+-- (both lit), 1 = weak (one lit), 0 = ember (both burnt out).
+local STONE = Blitbuffer.Color8(0xD8)
+local STONE_DARK = Blitbuffer.Color8(0x99)
+local Shrine = Widget:extend{ w = 0, art = 0, art_id = nil, name = "", level = 2 }
+function Shrine:init()
+    local a = self.art
+    self.cap_h = math.max(4, math.floor(a * 0.06))
+    self.body_h = math.max(18, math.floor(a * 0.22))
+    self.base_h = math.max(4, math.floor(a * 0.06))
+    self.feet_y = math.floor(a * 0.97)
+    self.h = self.feet_y + self.cap_h + self.body_h + self.base_h
+    self.label = text(self.name, 26, true, math.floor(a * 0.66), BLACK, "display")
+    self.god = Art.widget(self.art_id, a)
+    local fs = math.floor(a * 0.32)
+    self.fs = fs
+    local left = self.level >= 1 and (self.level == 2 and "flame_2" or "flame_1") or "flame_0"
+    local right = self.level == 2 and "flame_2" or "flame_0"
+    self.flames = { Art.widget(left, fs), Art.widget(right, fs) }
+end
+function Shrine:getSize() return Geom:new{ w = self.w, h = self.h } end
+local function slab(bb, x, y, w, h, fill)
+    bb:paintRect(x, y, w, h, fill)
+    bb:paintBorder(x, y, w, h, math.max(2, math.floor(h / 8)), BLACK)
+end
+-- Vertical fluting like the pillars, leaving a clear band in the middle for
+-- the carved name.
+local function flutes(bb, x, y, w, h, clear_w)
+    local bw = px(2)
+    local step = math.max(px(8), math.floor(h / 4))
+    local lw = math.max(1, math.floor(bw / 2) + 1)
+    local cx = x + math.floor(w / 2)
+    local c0, c1 = cx - math.floor(clear_w / 2), cx + math.floor(clear_w / 2)
+    local xx = x + step
+    while xx < x + w - math.floor(step / 2) do
+        if xx + lw < c0 or xx > c1 then
+            bb:paintRect(xx, y + bw, lw, h - 2 * bw, STONE_DARK)
+        end
+        xx = xx + step
+    end
+end
+
+function Shrine:paintTo(bb, x, y)
+    self.dimen = Geom:new{ x = x, y = y, w = self.w, h = self.h }
+    local a, cx = self.art, x + math.floor(self.w / 2)
+    local bw = px(2)
+    -- pillars with braziers
+    local col_w = math.floor(a * 0.17)
+    local gap = math.floor(a * 0.10)
+    local top = y + math.floor(a * 0.52)
+    local bottom = y + self.h
+    for i, side in ipairs({ -1, 1 }) do
+        local px0 = side < 0 and (cx - math.floor(a / 2) - gap - col_w) or (cx + math.floor(a / 2) + gap)
+        local capital = math.max(4, math.floor(a * 0.05))
+        slab(bb, px0 - math.floor(col_w * 0.2), top, col_w + math.floor(col_w * 0.4), capital, STONE_DARK)
+        bb:paintRect(px0, top + capital, col_w, bottom - top - 2 * capital, STONE)
+        for k = 1, 3 do
+            bb:paintRect(px0 + math.floor(col_w * k / 4), top + capital + bw, math.max(1, math.floor(bw / 2) + 1), bottom - top - 2 * capital - 2 * bw, STONE_DARK)
+        end
+        bb:paintBorder(px0, top + capital, col_w, bottom - top - 2 * capital, bw, BLACK)
+        slab(bb, px0 - math.floor(col_w * 0.2), bottom - capital, col_w + math.floor(col_w * 0.4), capital, STONE_DARK)
+        self.flames[i]:paintTo(bb, px0 + math.floor((col_w - self.fs) / 2), top - self.fs + math.floor(self.fs * 0.08))
+    end
+    -- plinth: cap, carved body with the name, base
+    local yy = y + self.feet_y
+    slab(bb, cx - math.floor(a * 0.44), yy, math.floor(a * 0.88), self.cap_h, STONE_DARK)
+    yy = yy + self.cap_h
+    local body_w = math.floor(a * 0.74)
+    bb:paintRect(cx - math.floor(body_w / 2), yy, body_w, self.body_h, STONE)
+    flutes(bb, cx - math.floor(body_w / 2), yy, body_w, self.body_h, self.label:getSize().w + px(16))
+    bb:paintBorder(cx - math.floor(body_w / 2), yy, body_w, self.body_h, bw, BLACK)
+    local ls = self.label:getSize()
+    self.label:paintTo(bb, cx - math.floor(ls.w / 2), yy + math.floor((self.body_h - ls.h) / 2))
+    yy = yy + self.body_h
+    slab(bb, cx - math.floor(a * 0.48), yy, math.floor(a * 0.96), self.base_h, STONE_DARK)
+    -- the god, standing on the plinth
+    self.god:paintTo(bb, cx - math.floor(a / 2), y)
+end
+
+-- Creature altar: the creature stands behind a low offering stone with its
+-- name carved in it, a libation bowl on the left of the ledge. state: "fed"
+-- (full bowl), "waiting" / "hungry" (empty bowl), "left" (tipped bowl, cracked
+-- stone, only a faded outline of the creature remains).
+local Altar = Widget:extend{ w = 0, art = 0, art_id = nil, name = "", state = "waiting" }
+function Altar:init()
+    local a = self.art
+    self.top_y = math.floor(a * 0.90)
+    self.cap_h = math.max(4, math.floor(a * 0.05))
+    self.body_h = math.max(18, math.floor(a * 0.24))
+    self.base_h = math.max(4, math.floor(a * 0.05))
+    self.item = math.floor(a * 0.30)
+    self.h = self.top_y + self.cap_h + self.body_h + self.base_h
+    self.label = text(self.name, 26, true, math.floor(a * 0.8), BLACK, "display")
+    self.creature = Art.widget(self.art_id, a)
+    if self.state == "left" then self.creature.dim = true end
+    local st = self.state
+    self.bowl = Art.widget(st == "fed" and "offer_bowl_full" or (st == "left" and "offer_bowl_tipped" or "offer_bowl_empty"), self.item)
+end
+function Altar:getSize() return Geom:new{ w = self.w, h = self.h } end
+function Altar:paintTo(bb, x, y)
+    self.dimen = Geom:new{ x = x, y = y, w = self.w, h = self.h }
+    local a, cx = self.art, x + math.floor(self.w / 2)
+    local bw = px(2)
+    self.creature:paintTo(bb, cx - math.floor(a / 2), y)
+    -- offering stone: ledge, carved body, base
+    local sw = math.floor(a * 1.56)
+    local yy = y + self.top_y
+    bb:paintRect(cx - math.floor(sw / 2), yy, sw, self.cap_h, STONE_DARK)
+    bb:paintBorder(cx - math.floor(sw / 2), yy, sw, self.cap_h, bw, BLACK)
+    yy = yy + self.cap_h
+    local body_w = math.floor(a * 1.40)
+    bb:paintRect(cx - math.floor(body_w / 2), yy, body_w, self.body_h, STONE)
+    flutes(bb, cx - math.floor(body_w / 2), yy, body_w, self.body_h, self.label:getSize().w + px(16))
+    bb:paintBorder(cx - math.floor(body_w / 2), yy, body_w, self.body_h, bw, BLACK)
+    if self.state == "left" then
+        -- a crack running down the abandoned stone
+        local m = math.max(2, math.floor(a * 0.018))
+        local x0 = cx - math.floor(body_w / 2) + math.floor(body_w * 0.12)
+        local pts = { { 0, 0 }, { 0.05, 0.3 }, { -0.02, 0.55 }, { 0.06, 0.8 }, { 0.03, 1 } }
+        for i = 1, #pts - 1 do
+            local ax, ay = x0 + pts[i][1] * a, yy + pts[i][2] * self.body_h
+            local bx, by = x0 + pts[i + 1][1] * a, yy + pts[i + 1][2] * self.body_h
+            local n = math.max(1, math.floor(math.max(math.abs(bx - ax), math.abs(by - ay)) / m * 2))
+            for k = 0, n do
+                local t = k / n
+                bb:paintRect(math.floor(ax + (bx - ax) * t), math.floor(ay + (by - ay) * t), m, m, BLACK)
+            end
+        end
+    end
+    local ls = self.label:getSize()
+    self.label:paintTo(bb, cx - math.floor(ls.w / 2), yy + math.floor((self.body_h - ls.h) / 2))
+    yy = yy + self.body_h
+    bb:paintRect(cx - math.floor(a * 0.8), yy, math.floor(a * 1.6), self.base_h, STONE_DARK)
+    bb:paintBorder(cx - math.floor(a * 0.8), yy, math.floor(a * 1.6), self.base_h, bw, BLACK)
+    -- offerings on the ledge
+    local it = self.item
+    -- sit the bowl's foot exactly on the ledge (sprite rows below the foot are blank)
+    local foot = self.state == "left" and 1 or 88 / 96
+    self.bowl:paintTo(bb, cx - math.floor(sw / 2) + math.floor(sw * 0.04), y + self.top_y - math.floor(it * foot))
+end
+
+-- Temple facade drawn faintly behind the companion scene: pediment and
+-- entablature in their own band at the top (never over the character), and a
+-- fluted column at each edge.
+local FACADE_FILL = Blitbuffer.Color8(0xEE)
+local FACADE_LINE = Blitbuffer.Color8(0xC4)
+local Facade = WidgetContainer:extend{ w = 0, roof_h = 0 }
+function Facade:getSize()
+    local s = self[1]:getSize()
+    return Geom:new{ w = self.w, h = self.roof_h + s.h + px(10) }
+end
+function Facade:paintTo(bb, x, y)
+    local size = self:getSize()
+    self.dimen = Geom:new{ x = x, y = y, w = size.w, h = size.h }
+    local lw = px(2)
+    local w, rh = self.w, self.roof_h
+    local beam_h = math.floor(rh * 0.30)
+    local peak_h = rh - beam_h - px(6)
+    -- pediment: filled triangle, one row at a time
+    for r = 0, peak_h do
+        local half = math.floor((w / 2) * r / peak_h)
+        bb:paintRect(x + math.floor(w / 2) - half, y + r, 2 * half, 1, FACADE_FILL)
+        bb:paintRect(x + math.floor(w / 2) - half, y + r, lw, 1, FACADE_LINE)
+        bb:paintRect(x + math.floor(w / 2) + half - lw, y + r, lw, 1, FACADE_LINE)
+    end
+    -- entablature with triglyph-like blocks
+    local by = y + peak_h
+    bb:paintRect(x, by, w, beam_h, FACADE_FILL)
+    bb:paintBorder(x, by, w, beam_h, lw, FACADE_LINE)
+    local step = px(20)
+    local xx = x + px(10)
+    while xx + px(8) < x + w - px(6) do
+        bb:paintRect(xx, by + math.floor(beam_h * 0.25), px(8), math.floor(beam_h * 0.5), FACADE_LINE)
+        xx = xx + step
+    end
+    -- columns at both edges, down to a step at the bottom
+    local col_w = px(24)
+    local top, bottom = by + beam_h, y + size.h - px(8)
+    for _, cx in ipairs({ x, x + w - col_w }) do
+        bb:paintRect(cx, top, col_w, bottom - top, FACADE_FILL)
+        for k = 1, 3 do bb:paintRect(cx + math.floor(col_w * k / 4), top + lw, lw, bottom - top - 2 * lw, FACADE_LINE) end
+        bb:paintBorder(cx, top, col_w, bottom - top, lw, FACADE_LINE)
+    end
+    bb:paintRect(x, bottom, w, px(8), FACADE_FILL)
+    bb:paintBorder(x, bottom, w, px(8), lw, FACADE_LINE)
+    -- the scene itself, below the roof
+    self[1]:paintTo(bb, x + math.floor((w - self[1]:getSize().w) / 2), y + rh)
+end
 
 -- Builds the status panel of size w x h. for_sleep marks the sleep-screen version.
 function UI.buildStatus(w, h, for_sleep)
@@ -832,7 +1046,7 @@ function UI.buildStatus(w, h, for_sleep)
             vspace(4),
             progressBar(pw, c.today_pages / goal),
             vspace(6),
-            text(string.format(L("Chỉ tính sách %s"), Store.TIER_RANGE[tier]), 11),
+            text(string.format(L("Chỉ tính %s (%s)"), Store.TIER_NAME[tier], Store.TIER_RANGE[tier]), 11),
             vspace(4),
             row(HorizontalGroup:new{ align = "center", text(L("Ngày lỡ"), 11, true), hspace(8), Dots:new{ n = R.MAX_MISSED_DAYS, filled = missed, r = px(6) } },
                 text(right, 11, true), pw),
@@ -841,6 +1055,7 @@ function UI.buildStatus(w, h, for_sleep)
     end
 
     local top_line = nil
+    local end_pill
     local art_id, art_name, extra, msg, warning
     local ch
     if c.char then
@@ -856,23 +1071,18 @@ function UI.buildStatus(w, h, for_sleep)
         elseif mood == "weak" then top_line = (L("Đuốc của %s cháy yếu")):format(ch.name)
         else top_line = (L("Đuốc của %s đã thành than")):format(ch.name) end
         if tier == R.CLAY then
-            local foods = R.foodToday(s)
-            if foods > 0 then
-                extra = HorizontalGroup:new{ align = "center" }
-                local names = { "food_olive", "food_honey", "food_apple", "food_ambrosia" }
-                for i = 1, foods do table.insert(extra, Art.widget(names[i], px(36))) end
-            end
+            extra = { altar = c.today_pages >= goal and "fed" or (mood == "hungry" and "hungry" or "waiting") }
             if c.today_pages >= goal then
-                msg = (L("No căng bụng rồi! Hôm nay %s đã được ăn.")):format(ch.name)
+                msg = "“" .. ch.blessing .. "”"
             elseif mood == "hungry" then
                 warning = true
                 local left = R.MAX_MISSED_DAYS - c.missed
                 if left > 1 then
-                    msg = (L("Đã lỡ %d ngày. Còn %d ngày để đọc %d trang sách %s, nếu không %s sẽ bỏ về đền.")):format(
-                        c.missed, left, goal, Store.TIER_RANGE[tier], ch.name)
+                    msg = (L("Đã lỡ %d ngày. Còn %d ngày để đọc %d trang %s, nếu không %s sẽ về đền.")):format(
+                        c.missed, left, goal, Store.TIER_BOOK[tier], ch.name)
                 else
-                    msg = (L("Đã lỡ %d ngày. Đọc %d trang sách %s hôm nay, nếu không %s sẽ bỏ về đền.")):format(
-                        c.missed, goal, Store.TIER_RANGE[tier], ch.name)
+                    msg = (L("Đã lỡ %d ngày. Hôm nay đọc %d trang %s, nếu không %s sẽ về đền.")):format(
+                        c.missed, goal, Store.TIER_BOOK[tier], ch.name)
                 end
             else
                 msg = (L("Hôm nay %s chưa được ăn. Đọc đủ %d trang để cho nó ăn nhé.")):format(ch.name, goal)
@@ -882,10 +1092,10 @@ function UI.buildStatus(w, h, for_sleep)
             extra = "flame_" .. level
             if mood == "ember" then
                 warning = true
-                msg = (L("%s đang giận, không ban phước. Đọc %d trang sách %s để thắp lại đuốc.")):format(ch.name, goal, Store.TIER_RANGE[tier])
+                msg = (L("%s đang giận. Đọc %d trang %s để thắp lại đuốc.")):format(ch.name, goal, Store.TIER_BOOK[tier])
             elseif mood == "weak" then
                 warning = true
-                msg = (L("Đã lỡ %d ngày. Đọc %d trang sách %s hôm nay, nếu không đuốc sẽ thành than.")):format(c.missed, goal, Store.TIER_RANGE[tier])
+                msg = (L("Đã lỡ %d ngày. Hôm nay đọc %d trang %s, nếu không đuốc sẽ thành than.")):format(c.missed, goal, Store.TIER_BOOK[tier])
             else
                 msg = "“" .. ch.blessing .. "”"
             end
@@ -893,7 +1103,9 @@ function UI.buildStatus(w, h, for_sleep)
     elseif c.left_char then
         local name = Store.char(c.left_char).name
         top_line = (L("%s đã về Đền thờ")):format(name)
-        art_id = "logo_96"
+        art_id = Store.char(c.left_char).key
+        ch = Store.char(c.left_char)
+        extra = { altar = "left" }
         msg = (L("%d ngày liền chưa đọc đủ %d trang nên %s đã về Đền thờ. Vào Đền thờ để chọn lại %s nhé.")):format(
             R.MAX_MISSED_DAYS, R.dailyGoal(R.CLAY), name, name)
     end
@@ -902,28 +1114,40 @@ function UI.buildStatus(w, h, for_sleep)
         -- Companion layout: label, character (+ flame / food), line, message, goal panel.
         local msg_w = message(msg, warning)
         local panel = c.char and goalPanel() or nil
-        local label = text(top_line, 14, false, inner_w)
-        local fixed = label:getSize().h + msg_w:getSize().h + (panel and panel:getSize().h or px(50)) + px(90)
+        local label = text(top_line, 16, true, inner_w, BLACK, "display")
+        local roof_h = px(64)
+        local fixed = label:getSize().h + msg_w:getSize().h + (panel and panel:getSize().h or px(50)) + px(90) + roof_h
         local art = math.floor(math.max(px(96), math.min(inner_w * 0.75, h - fixed - px(60))))
-        if type(extra) == "string" then art = math.min(art, math.floor(inner_w / 1.75)) end
-        add(vspace(8))
-        add(label)
-        add(vspace(8))
-        if type(extra) == "string" then -- flame next to a god / Titan
-            local fl = math.floor(art / 3)
-            add(HorizontalGroup:new{ align = "bottom", HorizontalSpan:new{ width = fl }, Art.widget(art_id, art), Art.widget(extra, fl) })
-        else
-            add(Art.widget(art_id, art))
+        if type(extra) == "string" then
+            -- room for the pillars on both sides and the plinth below
+            art = math.floor(math.min(art, (inner_w - 2 * px(30)) * 0.56, (h - fixed - px(60)) / 1.32))
+        elseif type(extra) == "table" and extra.altar then
+            art = math.floor(math.min(art, (inner_w - 2 * px(30)) * 0.60, (h - fixed - px(60)) / 1.24))
         end
-        add(hline(inner_w - px(40)))
-        if type(extra) == "table" then add(vspace(4)); add(extra) end
+        add(vspace(8))
+        local scene_w = inner_w - 2 * px(30)
+        local scene = VerticalGroup:new{ align = "center", label, vspace(8) }
+        if type(extra) == "string" then -- god / Titan on its shrine
+            table.insert(scene, Shrine:new{ w = scene_w, art = art, art_id = art_id, name = ch.name:upper(),
+                                            level = tonumber(extra:match("%d")) or 2 })
+        elseif type(extra) == "table" and extra.altar then -- creature behind its offering stone
+            table.insert(scene, Altar:new{ w = scene_w, art = art, art_id = art_id, name = ch.name:upper(), state = extra.altar })
+        else
+            table.insert(scene, Art.widget(art_id, art))
+        end
+        add(Facade:new{ w = inner_w, roof_h = roof_h, scene })
         add(vspace(14))
         add(msg_w)
         add(vspace(14))
         if panel then
             add(panel)
         else
-            add(pill(L("Bật máy · vào Đền thờ"), 12, true))
+            -- placed after the frame is measured: centred in the space left below the message
+            end_pill = FrameContainer:new{
+                bordersize = px(2), radius = px(22), background = BLACK,
+                padding = 0, padding_left = px(24), padding_right = px(24), padding_top = px(10), padding_bottom = px(10),
+                text(L("Bật máy · vào Đền thờ"), 17, true, nil, WHITE),
+            }
         end
     elseif not R.phase2(s) then
         add(vspace(40))
@@ -965,6 +1189,11 @@ function UI.buildStatus(w, h, for_sleep)
     local frame_inner_h = h - 2 * px(10) - 2 * fb
     local m_top, m_bot = meander(frame_inner_w - px(20)), meander(frame_inner_w - px(20))
     local body_h = frame_inner_h - 2 * m_top:getSize().h - px(24)
+    if end_pill then
+        local free = body_h - g:getSize().h
+        add(box(inner_w, math.max(end_pill:getSize().h, free), end_pill, "center", "center"))
+        g:resetLayout()
+    end
     local content = VerticalGroup:new{ align = "center",
         vspace(6), m_top,
         box(frame_inner_w, body_h, g, "center", "center"),
