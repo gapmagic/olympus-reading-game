@@ -39,7 +39,7 @@ Get the latest files from the [Releases page](../../releases/latest).
 | Device | What you need | Guide |
 |---|---|---|
 | Kindle (and other devices running KOReader) | `olympus.koplugin.zip` | [Installation](docs/Olympus-Kindle-Installation-Guide.pdf) · [User guide](docs/Olympus-Kindle-User-Guide.pdf) |
-| Xteink X4 Pro | `crosspoint-2.0.0-olympus-x4pro.bin` (modified CrossPoint firmware) | [Flashing guide](firmware/FLASHING_EN.md) · [About the firmware](firmware/README.md) |
+| Xteink X4 Pro | `crosspoint-2.0.0-olympus-x4pro.bin` (modified CrossPoint firmware) | [Installation](docs/Olympus-Xteink-Installation-Guide.pdf) · [User guide](docs/Olympus-Xteink-User-Guide.pdf) · [About the firmware](firmware/README.md) |
 
 ## Install on KOReader (short version)
 
@@ -66,4 +66,4 @@ The KOReader plugin is free software under the [GNU AGPL-3.0](LICENSE), the same
 
 ## Tiếng Việt
 
-Olympus có đầy đủ giao diện tiếng Việt. Hướng dẫn: [cài đặt](docs/Huong-dan-cai-dat-Olympus-Kindle.pdf) · [sử dụng](docs/Huong-dan-su-dung-Olympus-Kindle.pdf).
+Olympus có đầy đủ giao diện tiếng Việt. Hướng dẫn cho Kindle: [cài đặt](docs/Huong-dan-cai-dat-Olympus-Kindle.pdf) · [sử dụng](docs/Huong-dan-su-dung-Olympus-Kindle.pdf). Cho Xteink X4 Pro: [cài đặt](docs/Huong-dan-cai-dat-Olympus-Xteink.pdf) · [sử dụng](docs/Huong-dan-su-dung-Olympus-Xteink.pdf).
