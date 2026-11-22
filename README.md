@@ -10,15 +10,21 @@ Olympus turns reading into a collection game: every book you finish hatches a Gr
 
 - **Incubator.** Put up to three books in the incubator. The thicker the book, the rarer the egg: clay (0–200 pages), silver (201–499) or gold (500+).
 - **Hatching.** The egg follows your reading position and cracks as you go. At 95% of the book it hatches.
-- **Temple.** 90 hand-drawn pixel characters: 30 creatures, 30 Olympian gods, 30 Titans and primordials. No duplicates, and every character has a profile with origin, powers, symbols and myth.
-- **Companion.** Set any hatched character as your sleep screen. Read 5, 10 or 20 pages a day (by tier) to keep a creature fed or a god's torch burning. Miss three days in a row and your creature goes back to the Temple, or the torch burns down to embers.
+- **Temple.** 90 detailed pixel-art characters: 30 creatures, 30 Olympian gods, 30 Titans and primordials. No duplicates, and every character has a profile with origin, powers, symbols and myth.
+- **Companion.** Set any hatched character as your sleep screen. A creature waits at its **altar** with an offering bowl, and a god or Titan stands in a **shrine** between two lit braziers, with a quote or blessing under it.
+- **Daily goal.** Any book counts, short or long. Read the daily goal for your companion's tier to keep a creature fed or a god's torch burning: **5 pages** for a creature, **10** for a god, **20** for a Titan. Miss three days in a row and your creature goes back to the Temple, or the torch burns down to embers.
+- **Greek-style fonts.** Alegreya for text and Cormorant SC for titles and names, on the sleep screen and everywhere in Olympus.
 
 No ads, no accounts, no network. Everything stays on your device.
 
 | | | | |
 |---|---|---|---|
-| ![](media/screenshots/incubator.png) | ![](media/screenshots/temple_clay.png) | ![](media/screenshots/profile.png) | ![](media/screenshots/sleep_clay.png) |
-| Incubator | Temple | Character profile | Sleep screen: creature |
+| ![](media/screenshots/incubator.png) | ![](media/screenshots/temple_clay.png) | ![](media/screenshots/profile.png) | ![](media/screenshots/hatch.png) |
+| Incubator | Temple | Character profile | Egg hatched |
+| ![](media/screenshots/sleep_clay.png) | ![](media/screenshots/sleep_hungry.png) | ![](media/screenshots/sleep_god.png) | ![](media/screenshots/sleep_ember.png) |
+| Sleep screen: creature at its altar | Creature waiting to be fed | Sleep screen: god in the shrine | Torch burnt down to embers |
+
+Watch the promo video: [English](media/promo/olympus_promo_en.mp4) · [Tiếng Việt](media/promo/olympus_promo_vi.mp4) (55 seconds, vertical).
 
 ## Meet all 90 characters
 
