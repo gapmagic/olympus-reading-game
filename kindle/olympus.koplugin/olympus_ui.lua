@@ -891,6 +891,75 @@ function Shrine:paintTo(bb, x, y)
     self.god:paintTo(bb, cx - math.floor(a / 2), y)
 end
 
+-- Creature altar: the creature stands behind a low offering stone with its
+-- name carved in it. state: "fed" (full libation bowl, honey cake, incense),
+-- "waiting" / "hungry" (empty bowl), "left" (mossy stone, tipped bowl, only a
+-- faded outline of the creature remains).
+local Altar = Widget:extend{ w = 0, art = 0, art_id = nil, name = "", state = "waiting" }
+function Altar:init()
+    local a = self.art
+    self.top_y = math.floor(a * 0.90)
+    self.cap_h = math.max(4, math.floor(a * 0.05))
+    self.body_h = math.max(18, math.floor(a * 0.24))
+    self.base_h = math.max(4, math.floor(a * 0.05))
+    self.item = math.floor(a * 0.30)
+    self.h = self.top_y + self.cap_h + self.body_h + self.base_h
+    self.label = text(self.name, 24, true, math.floor(a * 0.8), BLACK, "display")
+    self.creature = Art.widget(self.art_id, a)
+    if self.state == "left" then self.creature.dim = true end
+    local st = self.state
+    self.bowl = Art.widget(st == "fed" and "offer_bowl_full" or (st == "left" and "offer_bowl_tipped" or "offer_bowl_empty"), self.item)
+    if st == "fed" then
+        self.cake = Art.widget("offer_cake", self.item)
+        self.smoke = Art.widget("offer_smoke", math.floor(self.item * 0.9))
+    end
+end
+function Altar:getSize() return Geom:new{ w = self.w, h = self.h } end
+function Altar:paintTo(bb, x, y)
+    self.dimen = Geom:new{ x = x, y = y, w = self.w, h = self.h }
+    local a, cx = self.art, x + math.floor(self.w / 2)
+    local bw = px(2)
+    self.creature:paintTo(bb, cx - math.floor(a / 2), y)
+    -- offering stone: ledge, carved body, base
+    local sw = math.floor(a * 1.56)
+    local yy = y + self.top_y
+    bb:paintRect(cx - math.floor(sw / 2), yy, sw, self.cap_h, STONE_DARK)
+    bb:paintBorder(cx - math.floor(sw / 2), yy, sw, self.cap_h, bw, BLACK)
+    yy = yy + self.cap_h
+    local body_w = math.floor(a * 1.40)
+    bb:paintRect(cx - math.floor(body_w / 2), yy, body_w, self.body_h, STONE)
+    bb:paintBorder(cx - math.floor(body_w / 2), yy, body_w, self.body_h, bw, BLACK)
+    if self.state == "left" then
+        -- a crack running down the abandoned stone
+        local m = math.max(2, math.floor(a * 0.018))
+        local x0 = cx - math.floor(body_w / 2) + math.floor(body_w * 0.12)
+        local pts = { { 0, 0 }, { 0.05, 0.3 }, { -0.02, 0.55 }, { 0.06, 0.8 }, { 0.03, 1 } }
+        for i = 1, #pts - 1 do
+            local ax, ay = x0 + pts[i][1] * a, yy + pts[i][2] * self.body_h
+            local bx, by = x0 + pts[i + 1][1] * a, yy + pts[i + 1][2] * self.body_h
+            local n = math.max(1, math.floor(math.max(math.abs(bx - ax), math.abs(by - ay)) / m * 2))
+            for k = 0, n do
+                local t = k / n
+                bb:paintRect(math.floor(ax + (bx - ax) * t), math.floor(ay + (by - ay) * t), m, m, BLACK)
+            end
+        end
+    end
+    local ls = self.label:getSize()
+    self.label:paintTo(bb, cx - math.floor(ls.w / 2), yy + math.floor((self.body_h - ls.h) / 2))
+    yy = yy + self.body_h
+    bb:paintRect(cx - math.floor(a * 0.8), yy, math.floor(a * 1.6), self.base_h, STONE_DARK)
+    bb:paintBorder(cx - math.floor(a * 0.8), yy, math.floor(a * 1.6), self.base_h, bw, BLACK)
+    -- offerings on the ledge
+    local it = self.item
+    local ledge = y + self.top_y + math.floor(it * 0.12)
+    self.bowl:paintTo(bb, cx - math.floor(sw / 2) + math.floor(sw * 0.03), ledge - it)
+    if self.cake then
+        local kx = cx + math.floor(sw / 2) - math.floor(sw * 0.03) - it
+        self.cake:paintTo(bb, kx, ledge - it)
+        self.smoke:paintTo(bb, kx + math.floor(it * 0.05), ledge - it - math.floor(it * 0.75))
+    end
+end
+
 -- Builds the status panel of size w x h. for_sleep marks the sleep-screen version.
 function UI.buildStatus(w, h, for_sleep)
     local s = Store.refreshDay()
@@ -942,12 +1011,7 @@ function UI.buildStatus(w, h, for_sleep)
         elseif mood == "weak" then top_line = (L("Đuốc của %s cháy yếu")):format(ch.name)
         else top_line = (L("Đuốc của %s đã thành than")):format(ch.name) end
         if tier == R.CLAY then
-            local foods = R.foodToday(s)
-            if foods > 0 then
-                extra = HorizontalGroup:new{ align = "center" }
-                local names = { "food_olive", "food_honey", "food_apple", "food_ambrosia" }
-                for i = 1, foods do table.insert(extra, Art.widget(names[i], px(36))) end
-            end
+            extra = { altar = c.today_pages >= goal and "fed" or (mood == "hungry" and "hungry" or "waiting") }
             if c.today_pages >= goal then
                 msg = (L("No căng bụng rồi! Hôm nay %s đã được ăn.")):format(ch.name)
             elseif mood == "hungry" then
@@ -979,7 +1043,9 @@ function UI.buildStatus(w, h, for_sleep)
     elseif c.left_char then
         local name = Store.char(c.left_char).name
         top_line = (L("%s đã về Đền thờ")):format(name)
-        art_id = "logo_96"
+        art_id = Store.char(c.left_char).key
+        ch = Store.char(c.left_char)
+        extra = { altar = "left" }
         msg = (L("%d ngày liền chưa đọc đủ %d trang nên %s đã về Đền thờ. Vào Đền thờ để chọn lại %s nhé.")):format(
             R.MAX_MISSED_DAYS, R.dailyGoal(R.CLAY), name, name)
     end
@@ -994,6 +1060,8 @@ function UI.buildStatus(w, h, for_sleep)
         if type(extra) == "string" then
             -- room for the pillars on both sides and the plinth below
             art = math.floor(math.min(art, inner_w * 0.56, (h - fixed - px(60)) / 1.32))
+        elseif type(extra) == "table" and extra.altar then
+            art = math.floor(math.min(art, inner_w * 0.60, (h - fixed - px(60)) / 1.24))
         end
         add(vspace(8))
         add(label)
@@ -1001,11 +1069,12 @@ function UI.buildStatus(w, h, for_sleep)
         if type(extra) == "string" then -- god / Titan on its shrine
             add(Shrine:new{ w = inner_w, art = art, art_id = art_id, name = ch.name:upper(),
                             level = tonumber(extra:match("%d")) or 2 })
+        elseif type(extra) == "table" and extra.altar then -- creature behind its offering stone
+            add(Altar:new{ w = inner_w, art = art, art_id = art_id, name = ch.name:upper(), state = extra.altar })
         else
             add(Art.widget(art_id, art))
+            add(hline(inner_w - px(40)))
         end
-        if type(extra) ~= "string" then add(hline(inner_w - px(40))) end
-        if type(extra) == "table" then add(vspace(4)); add(extra) end
         add(vspace(14))
         add(msg_w)
         add(vspace(14))
