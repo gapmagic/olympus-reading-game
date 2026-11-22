@@ -20,6 +20,12 @@ No ads, no accounts, no network. Everything stays on your device.
 | ![](media/screenshots/incubator.png) | ![](media/screenshots/temple_clay.png) | ![](media/screenshots/profile.png) | ![](media/screenshots/sleep_clay.png) |
 | Incubator | Temple | Character profile | Sleep screen: creature |
 
+## Meet all 90 characters
+
+![All 90 Olympus characters](media/characters.png)
+
+Every god's and Titan's sleep-screen blessing, in English and Vietnamese, is listed in [docs/CHARACTERS.md](docs/CHARACTERS.md).
+
 ## Download
 
 Get the latest files from the [Releases page](../../releases/latest).
