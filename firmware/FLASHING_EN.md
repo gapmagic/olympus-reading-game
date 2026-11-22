@@ -27,7 +27,7 @@ This is official CrossPoint 2.0.0, plus reading-progress % in the Library, plus 
 - The Temple shows 3 tiers × 30 characters (tap a tab or hold Left/Right to switch tier).
 
 **Companion** (available as soon as your first character hatches)
-- The character set as the sleep screen is your companion: open its profile and tap "Set as sleep screen" (or press OK). Only books of the same length range as the character's tier count.
+- The character set as the sleep screen is your companion: open its profile and tap "Set as sleep screen" (or press OK). Any book counts; you just need to read the daily goal.
 - Once you have all 90/90, the incubator closes and you only look after your companion.
 - Daily goal: 5 / 10 / 20 pages by tier. A creature is fed for the day once you read 5 pages.
 - A Clay creature leaves after 3 days without reading; Silver and Gold torches burn down to embers.

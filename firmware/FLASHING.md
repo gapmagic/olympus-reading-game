@@ -26,7 +26,7 @@ SHA-256: `264f0ff089ed31a1f7896e6569e104383ee7fe19ffdce7693857781e1a5c1400`
 - Đền thờ hiển thị 3 tầng × 30 nhân vật (chạm tab hoặc giữ Trái/Phải để đổi tầng).
 
 **Bạn đồng hành** (có ngay khi đã nở nhân vật đầu tiên)
-- Nhân vật đặt làm màn chờ là bạn đồng hành: mở hồ sơ và chạm "Đặt làm màn chờ" (hoặc bấm OK). Chỉ sách cùng độ dày với bậc của nhân vật mới được tính.
+- Nhân vật đặt làm màn chờ là bạn đồng hành: mở hồ sơ và chạm "Đặt làm màn chờ" (hoặc bấm OK). Sách nào cũng được tính, chỉ cần đọc đủ số trang mục tiêu.
 - Khi đủ 90/90, lò ấp đóng lại và chỉ còn nuôi bạn đồng hành.
 - Mục tiêu mỗi ngày: 5 / 10 / 20 trang theo tầng; sinh vật đọc đủ 5 trang là được ăn cho ngày hôm đó.
 - Đất sét bỏ đi sau 3 ngày không đọc; Bạc và Vàng chuyển sang trạng thái tàn lửa.
