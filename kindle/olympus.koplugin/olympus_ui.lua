@@ -647,7 +647,7 @@ function Profile:build()
             section(L("KHẢ NĂNG"), ch.ability)
             section(L("BIỂU TƯỢNG"), ch.symbols)
             section(L("THẦN THOẠI"), ch.myth)
-            if tier ~= R.CLAY then section(L("LỜI BAN PHƯỚC"), ch.blessing) end
+            if ch.blessing ~= "" then section(tier == R.CLAY and L("LỜI NHẮN") or L("LỜI BAN PHƯỚC"), ch.blessing) end
         else
             title = "???"
             sub = L("Chưa nở")
@@ -655,8 +655,8 @@ function Profile:build()
             table.insert(details, card(bw, hint:getSize().h + px(28), hint, { pad = px(14), halign = "left" }))
             table.insert(details, vspace(10))
             local left = R.PER_TIER - R.hatchedCount(s, tier)
-            table.insert(details, para(string.format(L("Nở từ %s (sách %s). Bạn còn %d nhân vật chưa gặp ở bậc này."),
-                Store.TIER_EGG[tier], Store.TIER_RANGE[tier], left), 12, bw))
+            table.insert(details, para(string.format(L("Nở từ %s (%s, %s). Bạn còn %d nhân vật chưa gặp ở bậc này."),
+                Store.TIER_EGG[tier], Store.TIER_NAME[tier], Store.TIER_RANGE[tier], left), 12, bw))
         end
         local name_g = VerticalGroup:new{ align = "center", text(title, 28, true, bw), text(sub, 12) }
         local art = math.floor(math.min(bw * 0.6, bh - details:getSize().h - name_g:getSize().h - px(16)))
@@ -677,8 +677,8 @@ function Profile:askCompanion()
     local ch = Store.char(id)
     UIManager:show(ConfirmBox:new{
         text = string.format(L("Đặt %s làm màn chờ?"), ch.name) .. "\n\n" .. string.format(
-            L("Nhân vật sẽ thành bạn đồng hành. Chỉ tính sách %s, mục tiêu %d trang mỗi ngày. Bạn đồng hành cũ về lại đền, chuỗi ngày bắt đầu từ 0."),
-            Store.TIER_RANGE[tier], R.dailyGoal(tier)),
+            L("Nhân vật sẽ thành bạn đồng hành. Chỉ tính %s (%s), mục tiêu %d trang mỗi ngày. Bạn đồng hành cũ về lại đền, chuỗi ngày bắt đầu từ 0."),
+            Store.TIER_NAME[tier], Store.TIER_RANGE[tier], R.dailyGoal(tier)),
         ok_text = L("Đặt"),
         cancel_text = L("Huỷ"),
         ok_callback = function()
@@ -812,8 +812,8 @@ function TierComplete:build()
         if ev.all_completed then
             table.insert(g, para(L("Đủ 90/90! Lò ấp đóng lại. Vào Đền thờ để chọn một bạn đồng hành và giữ thói quen đọc mỗi ngày."), 14, bw, "center"))
         else
-            table.insert(g, para(string.format(L("Tất cả 30 nhân vật bậc này đã về Đền thờ. Từ giờ sách %s đặt vào lò ấp sẽ không nở thêm nhân vật."),
-                Store.TIER_RANGE[tier]), 13, bw, "center"))
+            table.insert(g, para(string.format(L("Tất cả 30 nhân vật bậc này đã về Đền thờ. Từ giờ %s đặt vào lò ấp sẽ không nở thêm nhân vật."),
+                Store.TIER_NAME[tier]), 13, bw, "center"))
             table.insert(g, vspace(10))
             table.insert(g, text(string.format(L("Bộ còn thiếu: Đất sét %d · Bạc %d · Vàng %d"),
                 30 - R.hatchedCount(s, 1), 30 - R.hatchedCount(s, 2), 30 - R.hatchedCount(s, 3)), 13, true, bw))
@@ -1046,7 +1046,7 @@ function UI.buildStatus(w, h, for_sleep)
             vspace(4),
             progressBar(pw, c.today_pages / goal),
             vspace(6),
-            text(string.format(L("Chỉ tính sách %s"), Store.TIER_RANGE[tier]), 11),
+            text(string.format(L("Chỉ tính %s (%s)"), Store.TIER_NAME[tier], Store.TIER_RANGE[tier]), 11),
             vspace(4),
             row(HorizontalGroup:new{ align = "center", text(L("Ngày lỡ"), 11, true), hspace(8), Dots:new{ n = R.MAX_MISSED_DAYS, filled = missed, r = px(6) } },
                 text(right, 11, true), pw),
@@ -1072,16 +1072,16 @@ function UI.buildStatus(w, h, for_sleep)
         if tier == R.CLAY then
             extra = { altar = c.today_pages >= goal and "fed" or (mood == "hungry" and "hungry" or "waiting") }
             if c.today_pages >= goal then
-                msg = (L("No căng bụng rồi! Hôm nay %s đã được ăn.")):format(ch.name)
+                msg = "“" .. ch.blessing .. "”"
             elseif mood == "hungry" then
                 warning = true
                 local left = R.MAX_MISSED_DAYS - c.missed
                 if left > 1 then
-                    msg = (L("Đã lỡ %d ngày. Còn %d ngày để đọc %d trang sách %s, nếu không %s sẽ bỏ về đền.")):format(
-                        c.missed, left, goal, Store.TIER_RANGE[tier], ch.name)
+                    msg = (L("Đã lỡ %d ngày. Còn %d ngày để đọc %d trang %s, nếu không %s sẽ về đền.")):format(
+                        c.missed, left, goal, Store.TIER_BOOK[tier], ch.name)
                 else
-                    msg = (L("Đã lỡ %d ngày. Đọc %d trang sách %s hôm nay, nếu không %s sẽ bỏ về đền.")):format(
-                        c.missed, goal, Store.TIER_RANGE[tier], ch.name)
+                    msg = (L("Đã lỡ %d ngày. Hôm nay đọc %d trang %s, nếu không %s sẽ về đền.")):format(
+                        c.missed, goal, Store.TIER_BOOK[tier], ch.name)
                 end
             else
                 msg = (L("Hôm nay %s chưa được ăn. Đọc đủ %d trang để cho nó ăn nhé.")):format(ch.name, goal)
@@ -1091,10 +1091,10 @@ function UI.buildStatus(w, h, for_sleep)
             extra = "flame_" .. level
             if mood == "ember" then
                 warning = true
-                msg = (L("%s đang giận, không ban phước. Đọc %d trang sách %s để thắp lại đuốc.")):format(ch.name, goal, Store.TIER_RANGE[tier])
+                msg = (L("%s đang giận. Đọc %d trang %s để thắp lại đuốc.")):format(ch.name, goal, Store.TIER_BOOK[tier])
             elseif mood == "weak" then
                 warning = true
-                msg = (L("Đã lỡ %d ngày. Đọc %d trang sách %s hôm nay, nếu không đuốc sẽ thành than.")):format(c.missed, goal, Store.TIER_RANGE[tier])
+                msg = (L("Đã lỡ %d ngày. Hôm nay đọc %d trang %s, nếu không đuốc sẽ thành than.")):format(c.missed, goal, Store.TIER_BOOK[tier])
             else
                 msg = "“" .. ch.blessing .. "”"
             end
