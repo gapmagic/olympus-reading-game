@@ -1055,6 +1055,7 @@ function UI.buildStatus(w, h, for_sleep)
     end
 
     local top_line = nil
+    local end_pill
     local art_id, art_name, extra, msg, warning
     local ch
     if c.char then
@@ -1141,7 +1142,8 @@ function UI.buildStatus(w, h, for_sleep)
         if panel then
             add(panel)
         else
-            add(pill(L("Bật máy · vào Đền thờ"), 12, true))
+            -- placed after the frame is measured: centred in the space left below the message
+            end_pill = pill(L("Bật máy · vào Đền thờ"), 12, true)
         end
     elseif not R.phase2(s) then
         add(vspace(40))
@@ -1183,6 +1185,11 @@ function UI.buildStatus(w, h, for_sleep)
     local frame_inner_h = h - 2 * px(10) - 2 * fb
     local m_top, m_bot = meander(frame_inner_w - px(20)), meander(frame_inner_w - px(20))
     local body_h = frame_inner_h - 2 * m_top:getSize().h - px(24)
+    if end_pill then
+        local free = body_h - g:getSize().h
+        add(box(inner_w, math.max(end_pill:getSize().h, free), end_pill, "center", "center"))
+        g:resetLayout()
+    end
     local content = VerticalGroup:new{ align = "center",
         vspace(6), m_top,
         box(frame_inner_w, body_h, g, "center", "center"),
