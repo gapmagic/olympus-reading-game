@@ -971,6 +971,54 @@ function Altar:paintTo(bb, x, y)
     self.bowl:paintTo(bb, cx - math.floor(sw / 2) + math.floor(sw * 0.04), y + self.top_y - math.floor(it * foot))
 end
 
+-- Temple facade drawn faintly behind the companion scene: pediment and
+-- entablature in their own band at the top (never over the character), and a
+-- fluted column at each edge.
+local FACADE_FILL = Blitbuffer.Color8(0xEE)
+local FACADE_LINE = Blitbuffer.Color8(0xC4)
+local Facade = WidgetContainer:extend{ w = 0, roof_h = 0 }
+function Facade:getSize()
+    local s = self[1]:getSize()
+    return Geom:new{ w = self.w, h = self.roof_h + s.h + px(10) }
+end
+function Facade:paintTo(bb, x, y)
+    local size = self:getSize()
+    self.dimen = Geom:new{ x = x, y = y, w = size.w, h = size.h }
+    local lw = px(2)
+    local w, rh = self.w, self.roof_h
+    local beam_h = math.floor(rh * 0.30)
+    local peak_h = rh - beam_h - px(6)
+    -- pediment: filled triangle, one row at a time
+    for r = 0, peak_h do
+        local half = math.floor((w / 2) * r / peak_h)
+        bb:paintRect(x + math.floor(w / 2) - half, y + r, 2 * half, 1, FACADE_FILL)
+        bb:paintRect(x + math.floor(w / 2) - half, y + r, lw, 1, FACADE_LINE)
+        bb:paintRect(x + math.floor(w / 2) + half - lw, y + r, lw, 1, FACADE_LINE)
+    end
+    -- entablature with triglyph-like blocks
+    local by = y + peak_h
+    bb:paintRect(x, by, w, beam_h, FACADE_FILL)
+    bb:paintBorder(x, by, w, beam_h, lw, FACADE_LINE)
+    local step = px(20)
+    local xx = x + px(10)
+    while xx + px(8) < x + w - px(6) do
+        bb:paintRect(xx, by + math.floor(beam_h * 0.25), px(8), math.floor(beam_h * 0.5), FACADE_LINE)
+        xx = xx + step
+    end
+    -- columns at both edges, down to a step at the bottom
+    local col_w = px(24)
+    local top, bottom = by + beam_h, y + size.h - px(8)
+    for _, cx in ipairs({ x, x + w - col_w }) do
+        bb:paintRect(cx, top, col_w, bottom - top, FACADE_FILL)
+        for k = 1, 3 do bb:paintRect(cx + math.floor(col_w * k / 4), top + lw, lw, bottom - top - 2 * lw, FACADE_LINE) end
+        bb:paintBorder(cx, top, col_w, bottom - top, lw, FACADE_LINE)
+    end
+    bb:paintRect(x, bottom, w, px(8), FACADE_FILL)
+    bb:paintBorder(x, bottom, w, px(8), lw, FACADE_LINE)
+    -- the scene itself, below the roof
+    self[1]:paintTo(bb, x + math.floor((w - self[1]:getSize().w) / 2), y + rh)
+end
+
 -- Builds the status panel of size w x h. for_sleep marks the sleep-screen version.
 function UI.buildStatus(w, h, for_sleep)
     local s = Store.refreshDay()
@@ -1066,26 +1114,27 @@ function UI.buildStatus(w, h, for_sleep)
         local msg_w = message(msg, warning)
         local panel = c.char and goalPanel() or nil
         local label = text(top_line, 16, true, inner_w, BLACK, "display")
-        local fixed = label:getSize().h + msg_w:getSize().h + (panel and panel:getSize().h or px(50)) + px(90)
+        local roof_h = px(64)
+        local fixed = label:getSize().h + msg_w:getSize().h + (panel and panel:getSize().h or px(50)) + px(90) + roof_h
         local art = math.floor(math.max(px(96), math.min(inner_w * 0.75, h - fixed - px(60))))
         if type(extra) == "string" then
             -- room for the pillars on both sides and the plinth below
-            art = math.floor(math.min(art, inner_w * 0.56, (h - fixed - px(60)) / 1.32))
+            art = math.floor(math.min(art, (inner_w - 2 * px(30)) * 0.56, (h - fixed - px(60)) / 1.32))
         elseif type(extra) == "table" and extra.altar then
-            art = math.floor(math.min(art, inner_w * 0.60, (h - fixed - px(60)) / 1.24))
+            art = math.floor(math.min(art, (inner_w - 2 * px(30)) * 0.60, (h - fixed - px(60)) / 1.24))
         end
         add(vspace(8))
-        add(label)
-        add(vspace(8))
+        local scene_w = inner_w - 2 * px(30)
+        local scene = VerticalGroup:new{ align = "center", label, vspace(8) }
         if type(extra) == "string" then -- god / Titan on its shrine
-            add(Shrine:new{ w = inner_w, art = art, art_id = art_id, name = ch.name:upper(),
-                            level = tonumber(extra:match("%d")) or 2 })
+            table.insert(scene, Shrine:new{ w = scene_w, art = art, art_id = art_id, name = ch.name:upper(),
+                                            level = tonumber(extra:match("%d")) or 2 })
         elseif type(extra) == "table" and extra.altar then -- creature behind its offering stone
-            add(Altar:new{ w = inner_w, art = art, art_id = art_id, name = ch.name:upper(), state = extra.altar })
+            table.insert(scene, Altar:new{ w = scene_w, art = art, art_id = art_id, name = ch.name:upper(), state = extra.altar })
         else
-            add(Art.widget(art_id, art))
-            add(hline(inner_w - px(40)))
+            table.insert(scene, Art.widget(art_id, art))
         end
+        add(Facade:new{ w = inner_w, roof_h = roof_h, scene })
         add(vspace(14))
         add(msg_w)
         add(vspace(14))
