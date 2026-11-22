@@ -1143,7 +1143,11 @@ function UI.buildStatus(w, h, for_sleep)
             add(panel)
         else
             -- placed after the frame is measured: centred in the space left below the message
-            end_pill = pill(L("Bật máy · vào Đền thờ"), 12, true)
+            end_pill = FrameContainer:new{
+                bordersize = px(2), radius = px(22), background = BLACK,
+                padding = 0, padding_left = px(24), padding_right = px(24), padding_top = px(10), padding_bottom = px(10),
+                text(L("Bật máy · vào Đền thờ"), 17, true, nil, WHITE),
+            }
         end
     elseif not R.phase2(s) then
         add(vspace(40))
