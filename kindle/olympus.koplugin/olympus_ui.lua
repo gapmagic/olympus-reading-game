@@ -855,6 +855,23 @@ local function slab(bb, x, y, w, h, fill)
     bb:paintRect(x, y, w, h, fill)
     bb:paintBorder(x, y, w, h, math.max(2, math.floor(h / 8)), BLACK)
 end
+-- Vertical fluting like the pillars, leaving a clear band in the middle for
+-- the carved name.
+local function flutes(bb, x, y, w, h, clear_w)
+    local bw = px(2)
+    local step = math.max(px(8), math.floor(h / 4))
+    local lw = math.max(1, math.floor(bw / 2) + 1)
+    local cx = x + math.floor(w / 2)
+    local c0, c1 = cx - math.floor(clear_w / 2), cx + math.floor(clear_w / 2)
+    local xx = x + step
+    while xx < x + w - math.floor(step / 2) do
+        if xx + lw < c0 or xx > c1 then
+            bb:paintRect(xx, y + bw, lw, h - 2 * bw, STONE_DARK)
+        end
+        xx = xx + step
+    end
+end
+
 function Shrine:paintTo(bb, x, y)
     self.dimen = Geom:new{ x = x, y = y, w = self.w, h = self.h }
     local a, cx = self.art, x + math.floor(self.w / 2)
@@ -882,6 +899,7 @@ function Shrine:paintTo(bb, x, y)
     yy = yy + self.cap_h
     local body_w = math.floor(a * 0.74)
     bb:paintRect(cx - math.floor(body_w / 2), yy, body_w, self.body_h, STONE)
+    flutes(bb, cx - math.floor(body_w / 2), yy, body_w, self.body_h, self.label:getSize().w + px(16))
     bb:paintBorder(cx - math.floor(body_w / 2), yy, body_w, self.body_h, bw, BLACK)
     local ls = self.label:getSize()
     self.label:paintTo(bb, cx - math.floor(ls.w / 2), yy + math.floor((self.body_h - ls.h) / 2))
@@ -924,6 +942,7 @@ function Altar:paintTo(bb, x, y)
     yy = yy + self.cap_h
     local body_w = math.floor(a * 1.40)
     bb:paintRect(cx - math.floor(body_w / 2), yy, body_w, self.body_h, STONE)
+    flutes(bb, cx - math.floor(body_w / 2), yy, body_w, self.body_h, self.label:getSize().w + px(16))
     bb:paintBorder(cx - math.floor(body_w / 2), yy, body_w, self.body_h, bw, BLACK)
     if self.state == "left" then
         -- a crack running down the abandoned stone
