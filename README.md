@@ -48,6 +48,10 @@ The full guide with screenshots is in [docs/](docs/).
 
 Found a bug or have an idea? [Open an issue](../../issues). If KOReader crashes, attach `koreader/crash.log`.
 
+## License
+
+Olympus is free software under the [GNU AGPL-3.0](LICENSE), the same license as KOReader.
+
 ## Tiếng Việt
 
 Olympus có đầy đủ giao diện tiếng Việt. Hướng dẫn: [cài đặt](docs/Huong-dan-cai-dat-Olympus-Kindle.pdf) · [sử dụng](docs/Huong-dan-su-dung-Olympus-Kindle.pdf).
