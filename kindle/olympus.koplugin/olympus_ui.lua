@@ -892,9 +892,9 @@ function Shrine:paintTo(bb, x, y)
 end
 
 -- Creature altar: the creature stands behind a low offering stone with its
--- name carved in it. state: "fed" (full libation bowl, honey cake, incense),
--- "waiting" / "hungry" (empty bowl), "left" (mossy stone, tipped bowl, only a
--- faded outline of the creature remains).
+-- name carved in it, a libation bowl on the left of the ledge. state: "fed"
+-- (full bowl), "waiting" / "hungry" (empty bowl), "left" (tipped bowl, cracked
+-- stone, only a faded outline of the creature remains).
 local Altar = Widget:extend{ w = 0, art = 0, art_id = nil, name = "", state = "waiting" }
 function Altar:init()
     local a = self.art
@@ -909,10 +909,6 @@ function Altar:init()
     if self.state == "left" then self.creature.dim = true end
     local st = self.state
     self.bowl = Art.widget(st == "fed" and "offer_bowl_full" or (st == "left" and "offer_bowl_tipped" or "offer_bowl_empty"), self.item)
-    if st == "fed" then
-        self.cake = Art.widget("offer_cake", self.item)
-        self.smoke = Art.widget("offer_smoke", math.floor(self.item * 0.9))
-    end
 end
 function Altar:getSize() return Geom:new{ w = self.w, h = self.h } end
 function Altar:paintTo(bb, x, y)
@@ -953,11 +949,6 @@ function Altar:paintTo(bb, x, y)
     local it = self.item
     local ledge = y + self.top_y + math.floor(it * 0.12)
     self.bowl:paintTo(bb, cx - math.floor(sw / 2) + math.floor(sw * 0.03), ledge - it)
-    if self.cake then
-        local kx = cx + math.floor(sw / 2) - math.floor(sw * 0.03) - it
-        self.cake:paintTo(bb, kx, ledge - it)
-        self.smoke:paintTo(bb, kx + math.floor(it * 0.05), ledge - it - math.floor(it * 0.75))
-    end
 end
 
 -- Builds the status panel of size w x h. for_sleep marks the sleep-screen version.
