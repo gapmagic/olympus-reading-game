@@ -805,7 +805,7 @@ end
 -- Companion status: used as the sleep screen, and in the app.
 ---------------------------------------------------------------------------
 
--- Builds the status panel of size w x h. for_sleep adds the "power button" line.
+-- Builds the status panel of size w x h. for_sleep marks the sleep-screen version.
 function UI.buildStatus(w, h, for_sleep)
     local s = Store.refreshDay()
     local c = s.companion
@@ -904,10 +904,8 @@ function UI.buildStatus(w, h, for_sleep)
         local panel = c.char and goalPanel() or nil
         local label = text(top_line, 14, false, inner_w)
         local fixed = label:getSize().h + msg_w:getSize().h + (panel and panel:getSize().h or px(50)) + px(90)
-        if for_sleep then fixed = fixed + px(24) end
         local art = math.floor(math.max(px(96), math.min(inner_w * 0.75, h - fixed - px(60))))
         if type(extra) == "string" then art = math.min(art, math.floor(inner_w / 1.75)) end
-        if for_sleep then add(text(L("Bấm nút nguồn để đọc tiếp"), 10, false, inner_w, GRAY)) end
         add(vspace(8))
         add(label)
         add(vspace(8))
@@ -928,7 +926,6 @@ function UI.buildStatus(w, h, for_sleep)
             add(pill(L("Bật máy · vào Đền thờ"), 12, true))
         end
     elseif not R.phase2(s) then
-        if for_sleep then add(text(L("Bấm nút nguồn để đọc tiếp"), 10, false, inner_w, GRAY)) end
         add(vspace(40))
         add(text(L("Lò ấp"), 26, true))
         add(text(L("Chưa có nhân vật nào nở"), 12))
