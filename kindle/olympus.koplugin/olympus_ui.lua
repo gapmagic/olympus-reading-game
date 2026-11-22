@@ -683,8 +683,8 @@ function Profile:askCompanion()
     local ch = Store.char(id)
     UIManager:show(ConfirmBox:new{
         text = string.format(L("Đặt %s làm màn chờ?"), ch.name) .. "\n\n" .. string.format(
-            L("Nhân vật sẽ thành bạn đồng hành. Chỉ tính %s (%s), mục tiêu %d trang mỗi ngày. Bạn đồng hành cũ về lại đền, chuỗi ngày bắt đầu từ 0."),
-            Store.TIER_NAME[tier], Store.TIER_RANGE[tier], R.dailyGoal(tier)),
+            L("Nhân vật sẽ thành bạn đồng hành. Mục tiêu %d trang mỗi ngày, sách nào cũng được. Bạn đồng hành cũ về lại đền, chuỗi ngày bắt đầu từ 0."),
+            R.dailyGoal(tier)),
         ok_text = L("Đặt"),
         cancel_text = L("Huỷ"),
         ok_callback = function()
@@ -1051,9 +1051,7 @@ function UI.buildStatus(w, h, for_sleep)
             row(text(L("MỤC TIÊU HÔM NAY"), 11, true), text(string.format(L("%d/%d trang"), math.min(c.today_pages, 999), goal), 16, true), pw),
             vspace(4),
             progressBar(pw, c.today_pages / goal),
-            vspace(6),
-            text(string.format(L("Chỉ tính %s (%s)"), Store.TIER_NAME[tier], Store.TIER_RANGE[tier]), 11),
-            vspace(4),
+            vspace(8),
             row(HorizontalGroup:new{ align = "center", text(L("Ngày lỡ"), 11, true), hspace(8), Dots:new{ n = R.MAX_MISSED_DAYS, filled = missed, r = px(6) } },
                 text(right, 11, true), pw),
         }
@@ -1084,11 +1082,11 @@ function UI.buildStatus(w, h, for_sleep)
                 warning = true
                 local left = R.MAX_MISSED_DAYS - c.missed
                 if left > 1 then
-                    msg = (L("Đã lỡ %d ngày. Còn %d ngày để đọc %d trang %s, nếu không %s sẽ về đền.")):format(
-                        c.missed, left, goal, Store.TIER_BOOK[tier], ch.name)
+                    msg = (L("Đã lỡ %d ngày. Còn %d ngày để đọc %d trang, nếu không %s sẽ về đền.")):format(
+                        c.missed, left, goal, ch.name)
                 else
-                    msg = (L("Đã lỡ %d ngày. Hôm nay đọc %d trang %s, nếu không %s sẽ về đền.")):format(
-                        c.missed, goal, Store.TIER_BOOK[tier], ch.name)
+                    msg = (L("Đã lỡ %d ngày. Hôm nay đọc %d trang, nếu không %s sẽ về đền.")):format(
+                        c.missed, goal, ch.name)
                 end
             else
                 msg = (L("Hôm nay %s chưa được ăn. Đọc đủ %d trang để cho nó ăn nhé.")):format(ch.name, goal)
@@ -1098,10 +1096,10 @@ function UI.buildStatus(w, h, for_sleep)
             extra = "flame_" .. level
             if mood == "ember" then
                 warning = true
-                msg = (L("%s đang giận. Đọc %d trang %s để thắp lại đuốc.")):format(ch.name, goal, Store.TIER_BOOK[tier])
+                msg = (L("%s đang giận. Đọc %d trang để thắp lại đuốc.")):format(ch.name, goal)
             elseif mood == "weak" then
                 warning = true
-                msg = (L("Đã lỡ %d ngày. Hôm nay đọc %d trang %s, nếu không đuốc sẽ thành than.")):format(c.missed, goal, Store.TIER_BOOK[tier])
+                msg = (L("Đã lỡ %d ngày. Hôm nay đọc %d trang, nếu không đuốc sẽ thành than.")):format(c.missed, goal)
             else
                 msg = "“" .. ch.blessing .. "”"
             end

@@ -325,7 +325,8 @@ end
 ---------------------------------------------------------------------------
 function R.isCompanionBook(s, book_pages)
     local c = s.companion
-    return c.char ~= nil and book_pages and book_pages > 0 and R.tierForPages(book_pages) == R.tierOf(c.char)
+    -- Any book feeds the companion; only the number of pages depends on its tier.
+    return c.char ~= nil and book_pages and book_pages > 0 and true or false
 end
 
 -- Daily bookkeeping. today < 0 means the clock is unknown.
