@@ -27,7 +27,7 @@ Get the latest files from the [Releases page](../../releases/latest).
 | Device | What you need | Guide |
 |---|---|---|
 | Kindle (and other devices running KOReader) | `olympus.koplugin.zip` | [Installation](docs/Olympus-Kindle-Installation-Guide.pdf) · [User guide](docs/Olympus-Kindle-User-Guide.pdf) |
-| Xteink X4 Pro | Olympus firmware built on CrossPoint | Coming soon |
+| Xteink X4 Pro | `crosspoint-2.0.0-olympus-x4pro.bin` (modified CrossPoint firmware) | [Flashing guide](firmware/FLASHING_EN.md) · [About the firmware](firmware/README.md) |
 
 ## Install on KOReader (short version)
 
@@ -50,7 +50,7 @@ Found a bug or have an idea? [Open an issue](../../issues). If KOReader crashes,
 
 ## License
 
-Olympus is free software under the [GNU AGPL-3.0](LICENSE), the same license as KOReader.
+The KOReader plugin is free software under the [GNU AGPL-3.0](LICENSE), the same license as KOReader. The Xteink firmware is a modified CrossPoint build distributed under GPLv3; see [firmware/](firmware/README.md).
 
 ## Tiếng Việt
 
